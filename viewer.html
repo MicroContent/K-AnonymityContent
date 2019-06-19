@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <title>AbstractContentViewer</title>
+    <script type="application/javascript">
+        /** 
+            dont delete! 
+        **/
+        function init() {
+            window.data = getData();
+
+            setXapiObjectGetter(getXapiObject);
+            registerOnSubmitListener(onSubmit);
+        }
+        /** 
+            dont delete! 
+        **/
+        function updateLayout() {
+            propagateLayoutChanges();
+        }
+        /** 
+            dont delete! 
+        **/
+        function sendStatement(stmt) {
+            sendXapiStatement(stmt);
+        }
+    </script>
+
+    <!-- EDIT css for custom styling 
+         
+        NOTE: you can use Material-css classes for styling 
+        Source: https://cdn.rawgit.com/FezVrasta/bootstrap-material-design/gh-pages-v3/bootstrap-elements.html
+    -->
+    <style type="text/css">
+        #container {
+            text-align: center;
+        }
+        table {
+            text-align: center;
+        }
+        table tr {
+            height: 32px;
+        }
+        table tr.anonymous {
+            background-color: green;
+        }
+        table tr.not-anonymous {
+            background-color: red;
+        }
+
+        table#hint {
+            float: left;
+            margin-right: 10px;
+            color: #3f51b5;
+            visibility: hidden;
+        }
+
+        table#hint.show {
+            visibility: visible;
+        }
+
+        table#content {
+            display: inline-block;
+        }
+        table#content tr.header {
+            font-weight: bold;
+        }
+        table#content tr td {
+            border: 1px solid black;
+        }
+
+        input {
+            max-width: 70px;
+            text-align: center;
+            background-color: transparent;
+            border: 0px;
+
+        }
+    </style>
+    <!-- EDIT css for custom styling -->
+
+</head>
+
+<body>
+    <!-- EDIT html for card display -->
+    <h1 id="title"></h1>
+
+    <div id="container">
+        <div id="description"></div>
+        <br>
+        <table id="hint">
+            <tr>
+                <th>k</th>
+            </tr>
+        </table>
+    
+        <table id="content">
+        </table>
+        <div>
+            <button id="toggleHintBtn" class="btn btn-primary" onclick="toggleHint()">Show Hint</button>
+        </div>
+    </div>
+
+    <!-- EDIT html for card display  -->
+
+    <!-- EDIT card logic -->
+    <script type="application/javascript">
+        var isShowingSolution = false;
+        var table = document.getElementById("content");
+        var hintTable = document.getElementById("hint");
+        var columns = [];
+        var k = 2;
+        var domains = []    // unique domains eg.: {name: "age", values: [12, 13]}
+
+        function setContent() {
+            // Description
+            document.getElementById("description").innerText = window.data.description;
+
+            // Headers
+            var headerRow = table.insertRow(table.rows.length);
+            headerRow.classList.add("header");
+            data.tableHeaders.forEach(function (element, index) {
+                var cell = headerRow.insertCell(index);
+                cell.innerText = element;
+            });
+
+            // Data
+            data.tableContent.forEach(function (row, index) {
+                var dataRow = table.insertRow(table.rows.length);
+
+                row.forEach(function (data, index) {
+                    var cell = dataRow.insertCell(index);
+                    var input = document.createElement("input");
+                    input.value = data;
+                    cell.appendChild(input);
+                });
+
+                // Add empty rows in hint table
+                var hintRow = hintTable.insertRow(hintTable.rows.length);
+                var cell = hintRow.insertCell(0);
+            });
+
+
+            // Storing all column arrays in a wrapper array
+            for (var i = 0; i < data.columns; i++) {
+                columns.push(getColumn(i));
+            }
+
+            // Filtering all unique domains
+            columns.forEach(function (col) {
+                var uniqueDomains = col.values.filter(function (value, index, self) {
+                    return self.indexOf(value) === index;
+                });
+                domains.push({
+                    name: col.domain,
+                    values: uniqueDomains
+                })
+            });
+        }
+
+        function getColumn(column) {
+            var values = [];
+
+            for (var i = 1; i < table.rows.length; i++) {
+                values.push(table.rows[i].cells[column].innerText)
+            }
+
+            return {
+                domain: data.tableHeaders[column],
+                values: values
+            }
+        }
+
+        var showHint = false
+        function toggleHint() {
+            showHint = !showHint;
+            if (showHint) {
+                var anonymities = calculateAnonymity();
+                anonymities.forEach(function (item, index) {
+                    hintTable.rows[index + 1].cells[0].innerText = item;
+                });
+                hintTable.classList.add("show");
+            } else {
+                hintTable.classList.remove("show");
+            }
+            document.getElementById("toggleHintBtn").innerHTML = showHint ? "Hide Hint" : "Show Hint";
+        }
+
+        function getXapiObject() { }
+
+        function onInteraction() { }
+
+        function onSubmit() {
+
+            if (!isShowingSolution) {
+                var anonymities = calculateAnonymity();
+                // Set Styling according to anonymity
+                anonymities.forEach(function (item, index) {
+                    if (item >= k) {
+                        table.rows[index + 1].classList.add("anonymous");
+                    } else {
+                        table.rows[index + 1].classList.add("not-anonymous");   
+                    }
+                });
+
+                updateLayout();
+                isShowingSolution = true;
+            } else {
+                // Reset styling
+                for (var i = 0; i < table.rows.length; i++) {
+                    table.rows[i].classList.remove("anonymous");
+                    table.rows[i].classList.remove("not-anonymous");
+                }
+
+                updateLayout();
+                isShowingSolution = false;
+            }
+        }
+
+        // return array of k for every row
+        function calculateAnonymity() {
+            var debug = document.getElementById("debug");
+            var count = 0;
+            var anonymity = [];
+
+            // TODO: Calculate anonymity for each row
+            // Currently comparing each row and store number of exact similarities
+            for (var i = 1; i < table.rows.length; i++) {
+                var row = [];
+                var r1 = rowToString(table.rows[i])
+                var similarities = 0;
+                for (var j = 1; j < table.rows.length; j++) {
+                    var r2 = rowToString(table.rows[j])
+                    if (r1 === r2) {
+                        similarities++;
+                    }
+                }
+                anonymity.push(similarities);
+            }
+
+            return anonymity;
+        }
+
+        function rowToString(row) {
+            var s;
+            for (var i = 0; i < row.cells.length; i++) {
+                s += row.cells[i].firstChild.value
+            }
+            return s;
+        }
+
+        // currently not used
+        function rowToArray(row) {
+            var r = [];
+            for (var i = 0; i < row.cells.length; i++) {
+                r.push(row.cells[i].firstChild.value);
+            }
+            return r;
+        }
+
+        // currently not used
+        function compareRows(row1, row2) {
+            var similarities = 0;
+            for (var i = 0; i < data.columns; i++) {
+                if (row1[i] === row2[i]) {
+                    similarities++;
+                }
+            }
+            if (similarities >= k) {
+                return true;
+            }
+            return false;
+        }
+
+        /** 
+            function init() -> dont delete! used for initialization.
+        **/
+        init();
+        setContent();
+        updateLayout();
+    </script>
+    <!-- EDIT card logic -->
+
+</body>
+
+</html>
