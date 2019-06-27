@@ -107,13 +107,6 @@
 
     <!-- EDIT card logic -->
     <script type="application/javascript">
-        var isShowingSolution = false;
-        var table = document.getElementById("content");
-        var hintTable = document.getElementById("hint");
-        var columns = [];
-        var k = 2;
-        var domains = []    // unique domains eg.: {name: "age", values: [12, 13]}
-
         function setContent() {
             // Description
             document.getElementById("description").innerText = window.data.description;
@@ -173,7 +166,6 @@
             }
         }
 
-        var showHint = false
         function toggleHint() {
             showHint = !showHint;
             if (showHint) {
@@ -188,7 +180,9 @@
             document.getElementById("toggleHintBtn").innerHTML = showHint ? "Hide Hint" : "Show Hint";
         }
 
-        function getXapiObject() { }
+        function getXapiObject() {
+            return {};
+         }
 
         function onInteraction() { }
 
@@ -278,6 +272,15 @@
             function init() -> dont delete! used for initialization.
         **/
         init();
+
+        var isShowingSolution = false;
+        var table = document.getElementById("content");
+        var hintTable = document.getElementById("hint");
+        var columns = [];
+        var k = 2;
+        var domains = []    // unique domains eg.: {name: "age", values: [12, 13]}
+        var showHint = false
+
         setContent();
         updateLayout();
     </script>
